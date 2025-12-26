@@ -1,0 +1,15 @@
+.venv/
+venv/
+pycache/
+*.pyc
+*.pyo
+*.pyd
+*.swp
+node_modules/
+.env
+
+
+!train/
+!train/checkpoints/
+!train/checkpoints/urlclf-v1/
+!train/checkpoints/urlclf-v1/**

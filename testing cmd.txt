@@ -1,0 +1,31 @@
+python -m venv venv
+
+.\venv\Scripts\Activate.ps1
+deactivate
+venv\Scripts\activate.bat
+
+python app.py
+uvicorn app:app --reload
+
+uvicorn appv2:app --reload
+
+uvicorn app_msg:app --reload
+uvicorn app_combined:app --reload
+uvicorn app_combined:app --host 0.0.0.0 --port 8000 --reload
+
+uvicorn app:app --host 0.0.0.0 --port 8000
+
+docker run -it --name n8n -p 5678:5678 -v $HOME\n8n_local.n8n:/home/node/.n8n 
+-e N8N_HOST=localhost -e N8N_PORT=5678 -e WEBHOOK_URL=http://localhost:5678/
+ -e GENERIC_TIMEZONE=Asia/Taipei n8nio/n8n:latest
+
+
+docker start n8n
+
+docker stop n8n
+
+
+cd .\train
+..\venv\Scripts\python.exe fine_tune.py
+
+pip install tldextract publicsuffix2 transformers fastapi uvicorn scikit-learn pandas tqdm

@@ -1,0 +1,151 @@
+# -----------------------
+# 前端頁面（首頁）
+# -----------------------
+@app.get("/", response_class=HTMLResponse)
+def index():
+    # 自包含 HTML/CSS/JS，行動版友善
+    return HTMLResponse(content="""
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>URL 釣魚檢測（本機測試）</title>
+<style>
+  :root { color-scheme: light dark; }
+  body {
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans TC", "PingFang TC", Arial, sans-serif;
+    margin: 0; padding: 1rem; line-height: 1.5; 
+    max-width: 900px; margin-inline: auto;
+  }
+  header { margin-bottom: 1rem; }
+  .card {
+    border: 1px solid rgba(0,0,0,.1);
+    border-radius: 12px; padding: 1rem; 
+    box-shadow: 0 4px 16px rgba(0,0,0,.05);
+    background: rgba(255,255,255,.6);
+    backdrop-filter: blur(6px);
+  }
+  label { display: block; margin-bottom: .5rem; font-weight: 600; }
+  input[type="text"] {
+    width: 100%; padding: .8rem 1rem; border: 1px solid rgba(0,0,0,.2); border-radius: 10px;
+    font-size: 1rem;
+  }
+  button {
+    margin-top: .8rem; padding: .7rem 1.1rem; border: 0; border-radius: 10px;
+    background: #2563eb; color: white; font-weight: 600; cursor: pointer;
+  }
+  button:disabled { opacity: .6; cursor: not-allowed; }
+  .row { display: grid; gap: .8rem; grid-template-columns: 1fr auto; align-items: start; }
+  @media (max-width: 600px) { .row { grid-template-columns: 1fr; } }
+
+  .result { margin-top: 1rem; white-space: pre-wrap; word-break: break-all; }
+  .badge {
+    display: inline-block; padding: .2rem .6rem; border-radius: 999px; font-size: .85rem; font-weight: 700;
+  }
+  .good { background: #ecfdf5; color: #065f46; border: 1px solid #10b981; }
+  .phish { background: #fef2f2; color: #991b1b; border: 1px solid #ef4444; }
+  .muted { color: #6b7280; }
+  .hints { margin-top: .4rem; color: #6b7280; }
+  footer { margin-top: 2rem; font-size: .9rem; color: #6b7280; }
+  code { background: rgba(0,0,0,.06); padding: .2rem .35rem; border-radius: 6px; }
+</style>
+</head>
+<body>
+  <header>
+    <h1>URL 釣魚檢測（本機測試）</h1>
+    <p class="muted">模型：CrabInHoney/urlbert-tiny-v4-phishing-classifier（本機推理，不用外部 API）</p>
+  </header>
+
+  <section class="card">
+    <label for="url">請輸入要檢測的 URL</label>
+    <div class="row">
+      <input id="url" type="text" placeholder="例如：https://example.com/login 或 hu991ngface.com.ru/" />
+      <button id="btn">檢測</button>
+    </div>
+    <div id="msg" class="muted" style="margin-top:.5rem;"></div>
+    <div id="out" class="result"></div>
+  </section>
+
+  <footer>
+    <p>說明：本頁只做基本分類與簡單提示。請勿在不明網站輸入帳號密碼或個資。</p>
+  </footer>
+
+<script>
+const $ = sel => document.querySelector(sel);
+
+const btn = $("#btn");
+const inp = $("#url");
+const out = $("#out");
+const msg = $("#msg");
+
+function renderResult(data) {
+  const badgeCls = data.top_label === "phish" ? "badge phish" : "badge good";
+  const predGood = (data.predictions.good * 100).toFixed(2);
+  const predPhish = (data.predictions.phish * 100).toFixed(2);
+  const hints = (data.hints || []).map(h => "• " + h).join("\\n");
+
+  out.innerHTML = `
+  <div>
+    <div>標準化後 URL：<code>${escapeHtml(data.normalized_url)}</code></div>
+    <div style="margin:.4rem 0;">
+      <span class="${badgeCls}">${escapeHtml(data.top_label)} ${Math.round(data.top_score * 100)}%</span>
+    </div>
+    <div>機率：good ${predGood}% ｜ phish ${predPhish}%</div>
+    ${hints ? `<div class="hints">提示：<br>${escapeHtml(hints)}</div>` : ""}
+  </div>
+  `;
+}
+
+function escapeHtml(s) {
+  return (s ?? "").toString()
+    .replaceAll("&","&amp;")
+    .replaceAll("<","&lt;")
+    .replaceAll(">","&gt;")
+    .replaceAll('"',"&quot;")
+    .replaceAll("'","&#39;");
+}
+
+async function classify(url) {
+  const payload = { url };
+  const res = await fetch("/classify_url", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload)
+  });
+  if (!res.ok) {
+    const text = await res.text().catch(()=> "");
+    throw new Error(`HTTP ${res.status}: ${text}`);
+  }
+  return await res.json();
+}
+
+btn.addEventListener("click", async () => {
+  out.textContent = "";
+  msg.textContent = "";
+  const url = inp.value.trim();
+  if (!url) {
+    msg.textContent = "請先輸入 URL。";
+    return;
+  }
+  btn.disabled = true;
+  btn.textContent = "檢測中...";
+  try {
+    const data = await classify(url);
+    renderResult(data);
+  } catch (err) {
+    console.error(err);
+    msg.textContent = "發生錯誤：" + (err?.message || err);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = "檢測";
+  }
+});
+
+inp.addEventListener("keydown", (e) => {
+  if (e.key === "Enter") btn.click();
+});
+</script>
+</body>
+</html>
+""")
