@@ -1,4 +1,14 @@
-# 使用較穩定且小的基底
+# ---------- Builder 階段：安裝 Python 依賴 ----------
+FROM python:3.11-slim-bookworm AS builder
+
+ENV PIP_NO_CACHE_DIR=1
+WORKDIR /build
+
+COPY requirements.txt /build/requirements.txt
+RUN pip install --upgrade pip \
+ && pip install --prefix=/install -r requirements.txt
+
+# ---------- Runtime 階段：最小可執行環境 ----------
 FROM python:3.11-slim-bookworm
 
 ENV DEBIAN_FRONTEND=noninteractive \
@@ -7,20 +17,19 @@ ENV DEBIAN_FRONTEND=noninteractive \
 
 WORKDIR /app
 
-# 僅安裝極少量系統套件；其餘交給 Playwright --with-deps 處理
+# 僅最小系統依賴；如需影像/音訊，保留 ffmpeg
 RUN apt-get update && apt-get install -y --no-install-recommends \
     ca-certificates curl ffmpeg \
  && rm -rf /var/lib/apt/lists/*
 
-# 先裝 Python 依賴（利用快取）
-COPY requirements.txt /app/requirements.txt
-RUN pip install --upgrade pip && pip install -r requirements.txt
+# 將 builder 安裝好的 site-packages 複製進來
+COPY --from=builder /install /usr/local
 
-# 安裝 Playwright 與 Chromium 及其系統依賴（一次完成）
-# 若你的 requirements.txt 已含 playwright，這行只需安裝瀏覽器與依賴
+# 若需要 Playwright + Chromium，放在最後並清理快取
+# 若不需要，整段移除可顯著變小
 RUN python -m playwright install --with-deps chromium
 
-# 複製專案（請用 .dockerignore 避免大型檔案進來）
+# 複製專案（透過 .dockerignore 排除大型檔）
 COPY . /app
 
 EXPOSE 8000
