@@ -8,15 +8,15 @@ WORKDIR /ITP
 
 # 系統依賴（Playwright/Chromium 需要）
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    ca-certificates curl git wget gnupg \
-    libglib2.0-0 libnss3 libgdk-pixbuf2.0-0 libgtk-3-0 libx11-6 \
-    libxcomposite1 libxdamage1 libxfixes3 libxrandr2 libasound2 libatk1.0-0 \
-    libatk-bridge2.0-0 libgbm1 libxshmfence1 libxext6 libxcursor1 \
-    libxrender1 libxi6 libxtst6 libpangocairo-1.0-0 libpango-1.0-0 \
-    libatspi2.0-0 libdrm2 libxkbcommon0 libnspr4 \
-    fonts-liberation libappindicator3-1 libu2f-udev \
-    ffmpeg \
-    && rm -rf /var/lib/apt/lists/*
+ca-certificates curl git wget gnupg \
+libglib2.0-0 libnss3 libgdk-pixbuf-2.0-0 libgtk-3-0 libx11-6 \
+libxcomposite1 libxdamage1 libxfixes3 libxrandr2 libasound2 libatk1.0-0 \
+libatk-bridge2.0-0 libgbm1 libxshmfence1 libxext6 libxcursor1 \
+libxrender1 libxi6 libxtst6 libpangocairo-1.0-0 libpango-1.0-0 \
+libatspi2.0-0 libdrm2 libxkbcommon0 libnspr4 \
+fonts-liberation libappindicator3-1 libu2f-udev \
+ffmpeg \
+&& rm -rf /var/lib/apt/lists/*
 
 # 先安裝 Python 依賴（利用快取）
 COPY requirements.txt /ITP/requirements.txt
